@@ -1,0 +1,1470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MindNest AI - Mental Health & Wellness Assistant</title>
+  <!-- Marked.js for markdown formatting -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      background-color: #111827;
+      background-image: radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.14) 0px, transparent 50%),
+                        radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.14) 0px, transparent 50%);
+      color: #f3f4f6;
+      height: 100vh;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* APP LAYOUT */
+    .app-container {
+      display: flex;
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+    }
+
+    /* SIDEBAR */
+    .sidebar {
+      width: 310px;
+      background: rgba(17, 24, 39, 0.95);
+      backdrop-filter: blur(16px);
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.3s ease;
+      z-index: 20;
+    }
+
+    .sidebar-header {
+      padding: 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      font-size: 18px;
+      color: #ffffff;
+      letter-spacing: -0.5px;
+    }
+
+    .brand-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #10b981, #059669);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 0 16px rgba(16, 185, 129, 0.35);
+    }
+
+    .new-chat-btn {
+      margin: 16px 20px;
+      padding: 12px 16px;
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #ffffff;
+      border: none;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);
+    }
+
+    .new-chat-btn:hover {
+      background: linear-gradient(135deg, #059669, #047857);
+      transform: translateY(-1px);
+    }
+
+    .chat-history {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .chat-history::-webkit-scrollbar {
+      width: 5px;
+    }
+    .chat-history::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+    }
+
+    .chat-item {
+      padding: 12px 14px;
+      border-radius: 10px;
+      color: #9ca3af;
+      font-size: 13.5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .chat-item:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: #f3f4f6;
+    }
+
+    .chat-item.active {
+      background: rgba(16, 185, 129, 0.15);
+      color: #10b981;
+      font-weight: 600;
+      border-left: 3px solid #10b981;
+    }
+
+    .chat-title {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 190px;
+    }
+
+    .delete-chat-btn {
+      opacity: 0;
+      background: transparent;
+      border: none;
+      color: #ef4444;
+      cursor: pointer;
+      font-size: 14px;
+      padding: 4px;
+      border-radius: 6px;
+      transition: opacity 0.2s ease, background 0.2s ease;
+    }
+
+    .chat-item:hover .delete-chat-btn {
+      opacity: 1;
+    }
+
+    .delete-chat-btn:hover {
+      background: rgba(239, 68, 68, 0.2);
+    }
+
+    .user-footer {
+      padding: 16px 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(17, 24, 39, 0.8);
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+    }
+
+    .user-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #374151;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .user-name-text {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #e5e7eb;
+      max-width: 130px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .logout-btn {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .logout-btn:hover {
+      background: rgba(239, 68, 68, 0.3);
+      color: #ffffff;
+    }
+
+    /* MAIN CHAT AREA */
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      position: relative;
+    }
+
+    .chat-header {
+      padding: 16px 24px;
+      background: rgba(17, 24, 39, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .mobile-menu-btn {
+      display: none;
+      background: transparent;
+      border: none;
+      color: #9ca3af;
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    .active-chat-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .model-badge {
+      font-size: 11px;
+      background: rgba(16, 185, 129, 0.15);
+      color: #10b981;
+      padding: 4px 12px;
+      border-radius: 20px;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      font-weight: 600;
+    }
+
+    .messages-box {
+      flex: 1;
+      padding: 24px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      scroll-behavior: smooth;
+    }
+
+    .messages-box::-webkit-scrollbar {
+      width: 6px;
+    }
+    .messages-box::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+    }
+
+    .message-row {
+      display: flex;
+      width: 100%;
+      flex-direction: column;
+    }
+
+    .message-row.user {
+      align-items: flex-end;
+    }
+
+    .message-row.assistant {
+      align-items: flex-start;
+    }
+
+    .message-bubble {
+      padding: 14px 20px;
+      border-radius: 18px;
+      max-width: 78%;
+      line-height: 1.6;
+      font-size: 14.5px;
+      animation: fadeIn 0.3s ease-out;
+      word-wrap: break-word;
+    }
+
+    .message-bubble.user {
+      background: linear-gradient(135deg, #10b981, #047857);
+      color: #ffffff;
+      border-bottom-right-radius: 4px;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.2);
+    }
+
+    .message-bubble.assistant {
+      background: #1f2937;
+      color: #f3f4f6;
+      border-bottom-left-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+    }
+
+    .message-bubble p {
+      margin-bottom: 8px;
+    }
+    .message-bubble p:last-child {
+      margin-bottom: 0;
+    }
+    .message-bubble ul, .message-bubble ol {
+      margin-left: 20px;
+      margin-bottom: 8px;
+    }
+
+    /* SELECTIVE SUPPORT CARDS */
+    .support-card-container {
+      margin-top: 10px;
+      max-width: 78%;
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    /* MODERATE OPTIONAL CARD */
+    .moderate-support-card {
+      background: rgba(31, 41, 55, 0.7);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      border-radius: 14px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .moderate-support-text {
+      font-size: 12.5px;
+      color: #93c5fd;
+    }
+
+    .moderate-support-btn {
+      background: rgba(59, 130, 246, 0.2);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+    }
+
+    .moderate-support-btn:hover {
+      background: rgba(59, 130, 246, 0.4);
+      color: #ffffff;
+    }
+
+    /* HIGH RISK CRISIS CARD */
+    .high-crisis-card {
+      background: rgba(31, 41, 55, 0.95);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      border-left: 4px solid #10b981;
+      border-radius: 16px;
+      padding: 16px 20px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+    }
+
+    .crisis-card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 14.5px;
+      color: #ffffff;
+      margin-bottom: 6px;
+    }
+
+    .crisis-card-desc {
+      font-size: 13px;
+      color: #d1d5db;
+      margin-bottom: 14px;
+      line-height: 1.4;
+    }
+
+    .crisis-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-size: 12.5px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s ease;
+    }
+
+    .action-btn.primary {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+    }
+    .action-btn.primary:hover {
+      background: linear-gradient(135deg, #059669, #047857);
+    }
+
+    .action-btn.secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: #e5e7eb;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+    .action-btn.secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .country-selector-buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .country-chip-btn {
+      padding: 6px 12px;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #10b981;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .country-chip-btn:hover {
+      background: rgba(16, 185, 129, 0.3);
+      color: #ffffff;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .typing-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 14px 20px;
+      background: #1f2937;
+      border-radius: 18px;
+      border-bottom-left-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      width: fit-content;
+    }
+
+    .typing-dot {
+      width: 7px;
+      height: 7px;
+      background: #10b981;
+      border-radius: 50%;
+      animation: pulse 1.4s infinite ease-in-out both;
+    }
+    .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+    .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+    @keyframes pulse {
+      0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+      40% { transform: scale(1.1); opacity: 1; }
+    }
+
+    .input-area {
+      padding: 18px 24px;
+      background: rgba(17, 24, 39, 0.85);
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex;
+      gap: 12px;
+    }
+
+    .input-area input {
+      flex: 1;
+      padding: 14px 18px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      outline: none;
+      background: #1f2937;
+      color: #ffffff;
+      font-size: 14.5px;
+      transition: all 0.2s ease;
+    }
+
+    .input-area input:focus {
+      border-color: #10b981;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+    }
+
+    .input-area button {
+      padding: 14px 22px;
+      border: none;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+      font-weight: bold;
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .input-area button:hover {
+      background: linear-gradient(135deg, #059669, #047857);
+      transform: translateY(-1px);
+    }
+
+    .input-area button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* AUTH MODAL OVERLAY */
+    .auth-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(11, 15, 25, 0.92);
+      backdrop-filter: blur(16px);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .auth-card {
+      width: 440px;
+      max-width: 90vw;
+      background: #1f2937;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 24px;
+      padding: 32px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+    }
+
+    .auth-title {
+      text-align: center;
+      font-size: 24px;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 4px;
+    }
+
+    .auth-subtitle {
+      text-align: center;
+      font-size: 13px;
+      color: #9ca3af;
+      margin-bottom: 20px;
+      line-height: 1.4;
+    }
+
+    .auth-tabs {
+      display: flex;
+      background: #111827;
+      padding: 4px;
+      border-radius: 12px;
+      margin-bottom: 18px;
+    }
+
+    .auth-tab {
+      flex: 1;
+      padding: 10px;
+      text-align: center;
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #9ca3af;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .auth-tab.active {
+      background: #10b981;
+      color: #ffffff;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #d1d5db;
+      margin-bottom: 5px;
+    }
+
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 11px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: #111827;
+      color: #ffffff;
+      font-size: 13.5px;
+      outline: none;
+    }
+
+    .form-group input:focus, .form-group select:focus {
+      border-color: #10b981;
+    }
+
+    .form-hint {
+      font-size: 11px;
+      color: #10b981;
+      margin-top: 4px;
+    }
+
+    .auth-btn {
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 14.5px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-top: 8px;
+    }
+
+    .auth-btn:hover {
+      background: linear-gradient(135deg, #059669, #047857);
+    }
+
+    .auth-error {
+      color: #f87171;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      margin-bottom: 14px;
+      display: none;
+    }
+
+    /* PROFILE MODAL */
+    .profile-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      z-index: 110;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .profile-card {
+      width: 420px;
+      background: #1f2937;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 28px;
+      position: relative;
+    }
+
+    .profile-close-btn {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      background: transparent;
+      border: none;
+      color: #9ca3af;
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    .profile-avatar-large {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #10b981, #059669);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: 700;
+      color: white;
+      margin: 0 auto 16px auto;
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+    }
+
+    .profile-field {
+      margin-bottom: 14px;
+    }
+
+    .profile-field-label {
+      font-size: 11.5px;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .profile-field-value {
+      font-size: 14.5px;
+      font-weight: 600;
+      color: #f3f4f6;
+      margin-top: 2px;
+    }
+
+    .profile-input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: #111827;
+      color: white;
+      font-size: 14px;
+      margin-top: 4px;
+    }
+
+    /* MOBILE RESPONSIVENESS */
+    @media (max-width: 768px) {
+      .sidebar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        transform: translateX(-100%);
+      }
+
+      .sidebar.open {
+        transform: translateX(0);
+      }
+
+      .mobile-menu-btn {
+        display: block;
+      }
+
+      .message-bubble, .support-card-container {
+        max-width: 90%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="app-container">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="brand">
+        <div class="brand-avatar">🪹</div>
+        <span>MindNest AI</span>
+      </div>
+    </div>
+
+    <button class="new-chat-btn" onclick="startNewChat()">
+      <span>+</span> New Chat
+    </button>
+
+    <div class="chat-history" id="chatHistory">
+      <!-- Dynamically populated conversations -->
+    </div>
+
+    <div class="user-footer">
+      <div class="user-info" onclick="openProfileModal()">
+        <div class="user-avatar" id="sidebarUserInitials">U</div>
+        <div class="user-name-text" id="sidebarUserName">User</div>
+      </div>
+      <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+  </aside>
+
+  <!-- MAIN CHAT AREA -->
+  <main class="main-content">
+    <header class="chat-header">
+      <div class="header-left">
+        <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+        <span class="active-chat-title" id="activeChatTitle">MindNest AI Assistant</span>
+      </div>
+      <span class="model-badge" id="countryBadge">Qwen 72B • Safety Active</span>
+    </header>
+
+    <div class="messages-box" id="messagesBox">
+      <!-- Messages rendered here -->
+    </div>
+
+    <div class="input-area">
+      <input id="messageInput" placeholder="Share how you are feeling..." autocomplete="off">
+      <button id="sendBtn" onclick="sendMessage()">➤</button>
+    </div>
+  </main>
+
+</div>
+
+<!-- AUTH MODAL OVERLAY -->
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-card">
+    <div class="auth-title">MindNest AI</div>
+    <div class="auth-subtitle">Selective Country-Based Support Companion</div>
+
+    <div class="auth-tabs">
+      <div class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">Login</div>
+      <div class="auth-tab" id="tabSignup" onclick="switchAuthTab('signup')">Sign Up</div>
+    </div>
+
+    <div class="auth-error" id="authError"></div>
+
+    <form id="authForm" onsubmit="handleAuthSubmit(event)">
+      <div class="form-group" id="groupName" style="display: none;">
+        <label>Full Name</label>
+        <input type="text" id="authName" placeholder="John Doe">
+      </div>
+
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" id="authEmail" placeholder="user@example.com" required>
+      </div>
+
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="authPassword" placeholder="••••••••" required>
+      </div>
+
+      <div class="form-group" id="groupCountry" style="display: none;">
+        <label>Select Country</label>
+        <select id="authCountry">
+          <option value="">-- Select Country --</option>
+          <option value="India">India</option>
+          <option value="United States">United States</option>
+          <option value="Other">Other / Not Listed</option>
+        </select>
+        <div class="form-hint">💡 Used exclusively to display country-specific crisis support if high-risk occurs.</div>
+      </div>
+
+      <div class="form-group" id="groupPhone" style="display: none;">
+        <label>Phone Number (Optional)</label>
+        <input type="tel" id="authPhone" placeholder="+1 (555) 000-0000">
+      </div>
+
+      <button type="submit" class="auth-btn" id="authSubmitBtn">Login</button>
+    </form>
+  </div>
+</div>
+
+<!-- USER PROFILE & SETTINGS MODAL -->
+<div class="profile-modal-overlay" id="profileModal">
+  <div class="profile-card">
+    <button class="profile-close-btn" onclick="closeProfileModal()">✕</button>
+    
+    <div class="profile-avatar-large" id="profileAvatarLarge">U</div>
+    
+    <div class="profile-field">
+      <div class="profile-field-label">Full Name</div>
+      <input type="text" class="profile-input" id="profileName">
+    </div>
+
+    <div class="profile-field">
+      <div class="profile-field-label">Email</div>
+      <div class="profile-field-value" id="profileEmail">-</div>
+    </div>
+
+    <div class="profile-field">
+      <div class="profile-field-label">Settings → Select Country</div>
+      <select class="profile-input" id="profileCountry">
+        <option value="">-- Select Country --</option>
+        <option value="India">India</option>
+        <option value="United States">United States</option>
+        <option value="Other">Other / Not Listed</option>
+      </select>
+    </div>
+
+    <div class="profile-field">
+      <div class="profile-field-label">Phone Number</div>
+      <input type="tel" class="profile-input" id="profilePhone" placeholder="Enter phone number">
+    </div>
+
+    <div class="profile-field">
+      <div class="profile-field-label">Member Since</div>
+      <div class="profile-field-value" id="profileJoined">-</div>
+    </div>
+
+    <button class="auth-btn" style="margin-top: 10px;" onclick="saveProfileChanges()">Save Country & Settings</button>
+    <button class="auth-btn" style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; margin-top: 8px;" onclick="logout()">
+      Logout of Account
+    </button>
+  </div>
+</div>
+
+<script>
+const API_URL = "http://localhost:5000/api";
+
+let token = localStorage.getItem("auth_token") || null;
+let currentUser = JSON.parse(localStorage.getItem("user_info")) || null;
+let activeAuthMode = "login";
+let activeConversationId = null;
+let conversationsList = [];
+
+// INITIALIZATION
+window.addEventListener("DOMContentLoaded", () => {
+  if (token && currentUser) {
+    hideAuthModal();
+    updateUserInterface();
+    loadConversations();
+  } else {
+    showAuthModal();
+  }
+});
+
+// AUTH UI TOGGLE
+function switchAuthTab(mode) {
+  activeAuthMode = mode;
+  const tabLogin = document.getElementById("tabLogin");
+  const tabSignup = document.getElementById("tabSignup");
+  const groupName = document.getElementById("groupName");
+  const groupPhone = document.getElementById("groupPhone");
+  const groupCountry = document.getElementById("groupCountry");
+  const authSubmitBtn = document.getElementById("authSubmitBtn");
+  const authError = document.getElementById("authError");
+
+  authError.style.display = "none";
+
+  if (mode === "login") {
+    tabLogin.classList.add("active");
+    tabSignup.classList.remove("active");
+    groupName.style.display = "none";
+    groupPhone.style.display = "none";
+    groupCountry.style.display = "none";
+    authSubmitBtn.innerText = "Login to MindNest AI";
+  } else {
+    tabSignup.classList.add("active");
+    tabLogin.classList.remove("active");
+    groupName.style.display = "block";
+    groupPhone.style.display = "block";
+    groupCountry.style.display = "block";
+    authSubmitBtn.innerText = "Create Account";
+  }
+}
+
+// AUTH SUBMIT HANDLER
+async function handleAuthSubmit(e) {
+  e.preventDefault();
+  const authError = document.getElementById("authError");
+  const email = document.getElementById("authEmail").value.trim();
+  const password = document.getElementById("authPassword").value;
+  const name = document.getElementById("authName").value.trim();
+  const phone = document.getElementById("authPhone").value.trim();
+  const country = document.getElementById("authCountry").value;
+
+  authError.style.display = "none";
+
+  const endpoint = activeAuthMode === "signup" ? "/auth/signup" : "/auth/login";
+  const payload = activeAuthMode === "signup" 
+    ? { name, email, password, phone, country } 
+    : { email, password };
+
+  try {
+    const res = await fetch(`${API_URL}${endpoint}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      authError.innerText = data.error || "Authentication failed.";
+      authError.style.display = "block";
+      return;
+    }
+
+    // SAVE AUTH DATA
+    token = data.token;
+    currentUser = data.user;
+    localStorage.setItem("auth_token", token);
+    localStorage.setItem("user_info", JSON.stringify(currentUser));
+
+    hideAuthModal();
+    updateUserInterface();
+    await loadConversations();
+  } catch (err) {
+    authError.innerText = "Unable to connect to MindNest AI backend server.";
+    authError.style.display = "block";
+  }
+}
+
+function showAuthModal() {
+  document.getElementById("authOverlay").style.display = "flex";
+}
+
+function hideAuthModal() {
+  document.getElementById("authOverlay").style.display = "none";
+}
+
+function logout() {
+  localStorage.removeItem("auth_token");
+  localStorage.removeItem("user_info");
+  token = null;
+  currentUser = null;
+  activeConversationId = null;
+  conversationsList = [];
+  closeProfileModal();
+  document.getElementById("messagesBox").innerHTML = "";
+  showAuthModal();
+}
+
+function updateUserInterface() {
+  if (!currentUser) return;
+  const name = currentUser.name || "User";
+  document.getElementById("sidebarUserName").innerText = name;
+  document.getElementById("sidebarUserInitials").innerText = name.charAt(0).toUpperCase();
+
+  document.getElementById("profileName").value = currentUser.name || "";
+  document.getElementById("profileEmail").innerText = currentUser.email || "";
+  document.getElementById("profilePhone").value = currentUser.phone || "";
+  document.getElementById("profileCountry").value = currentUser.country || "";
+  document.getElementById("profileAvatarLarge").innerText = name.charAt(0).toUpperCase();
+
+  const countryDisplay = currentUser.country ? ` • ${currentUser.country}` : "";
+  document.getElementById("countryBadge").innerText = `Qwen 72B${countryDisplay}`;
+  
+  if (currentUser.createdAt) {
+    document.getElementById("profileJoined").innerText = new Date(currentUser.createdAt).toLocaleDateString();
+  } else {
+    document.getElementById("profileJoined").innerText = "Recently";
+  }
+}
+
+async function saveProfileChanges() {
+  const name = document.getElementById("profileName").value.trim();
+  const phone = document.getElementById("profilePhone").value.trim();
+  const country = document.getElementById("profileCountry").value;
+
+  try {
+    const res = await fetch(`${API_URL}/auth/profile`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify({ name, phone, country })
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+      currentUser = data.user;
+      localStorage.setItem("user_info", JSON.stringify(currentUser));
+      updateUserInterface();
+      alert("Country & Profile preferences updated successfully! ✅");
+      closeProfileModal();
+    } else {
+      alert(data.error || "Failed to update profile");
+    }
+  } catch (err) {
+    alert("Connection error while updating profile.");
+  }
+}
+
+async function quickSelectCountry(selectedCountry) {
+  document.getElementById("profileCountry").value = selectedCountry;
+  await saveProfileChanges();
+}
+
+// CONVERSATION MANAGEMENT
+async function loadConversations() {
+  try {
+    const res = await fetch(`${API_URL}/conversations`, {
+      headers: { "Authorization": `Bearer ${token}` }
+    });
+
+    if (res.status === 401 || res.status === 403) {
+      logout();
+      return;
+    }
+
+    const data = await res.json();
+    conversationsList = data.conversations || [];
+    renderConversationsList();
+
+    if (conversationsList.length > 0) {
+      selectConversation(conversationsList[0]._id);
+    } else {
+      startNewChat();
+    }
+  } catch (err) {
+    console.error("Error loading conversations:", err);
+  }
+}
+
+function renderConversationsList() {
+  const container = document.getElementById("chatHistory");
+  container.innerHTML = "";
+
+  conversationsList.forEach(c => {
+    const item = document.createElement("div");
+    item.classList.add("chat-item");
+    if (c._id === activeConversationId) item.classList.add("active");
+    item.onclick = () => selectConversation(c._id);
+
+    item.innerHTML = `
+      <span class="chat-title">${escapeHtml(c.title || "New Chat")}</span>
+      <button class="delete-chat-btn" onclick="deleteConversation(event, '${c._id}')">🗑</button>
+    `;
+
+    container.appendChild(item);
+  });
+}
+
+async function selectConversation(id) {
+  activeConversationId = id;
+  renderConversationsList();
+
+  try {
+    const res = await fetch(`${API_URL}/conversations/${id}`, {
+      headers: { "Authorization": `Bearer ${token}` }
+    });
+
+    if (!res.ok) return;
+
+    const data = await res.json();
+    const conv = data.conversation;
+
+    document.getElementById("activeChatTitle").innerText = conv.title || "Conversation";
+
+    const messagesBox = document.getElementById("messagesBox");
+    messagesBox.innerHTML = "";
+
+    if (!conv.messages || conv.messages.length === 0) {
+      renderWelcomeMessage();
+    } else {
+      conv.messages.forEach(m => {
+        appendMessageBubble(m.content, m.role, true);
+      });
+    }
+  } catch (err) {
+    console.error("Failed to select conversation:", err);
+  }
+}
+
+async function startNewChat() {
+  try {
+    const res = await fetch(`${API_URL}/conversations`, {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${token}` }
+    });
+
+    if (!res.ok) return;
+
+    const data = await res.json();
+    const newConv = data.conversation;
+    activeConversationId = newConv._id;
+
+    conversationsList.unshift({
+      _id: newConv._id,
+      title: newConv.title,
+      updatedAt: newConv.updatedAt,
+      messageCount: 0
+    });
+
+    renderConversationsList();
+    document.getElementById("activeChatTitle").innerText = "New Chat";
+    document.getElementById("messagesBox").innerHTML = "";
+    renderWelcomeMessage();
+  } catch (err) {
+    console.error("Failed to create conversation:", err);
+  }
+}
+
+async function deleteConversation(e, id) {
+  e.stopPropagation();
+  if (!confirm("Are you sure you want to delete this conversation?")) return;
+
+  try {
+    const res = await fetch(`${API_URL}/conversations/${id}`, {
+      method: "DELETE",
+      headers: { "Authorization": `Bearer ${token}` }
+    });
+
+    if (!res.ok) return;
+
+    conversationsList = conversationsList.filter(c => c._id !== id);
+
+    if (activeConversationId === id) {
+      if (conversationsList.length > 0) {
+        selectConversation(conversationsList[0]._id);
+      } else {
+        startNewChat();
+      }
+    } else {
+      renderConversationsList();
+    }
+  } catch (err) {
+    console.error("Failed to delete conversation:", err);
+  }
+}
+
+// MESSAGING & AI INTEGRATION WITH SELECTIVE RISK CARDS
+async function sendMessage() {
+  const input = document.getElementById("messageInput");
+  const sendBtn = document.getElementById("sendBtn");
+  const message = input.value.trim();
+  if (!message) return;
+
+  appendMessageBubble(message, "user");
+  input.value = "";
+  input.disabled = true;
+  sendBtn.disabled = true;
+
+  showTypingIndicator();
+
+  try {
+    const res = await fetch(`${API_URL}/chat`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        conversationId: activeConversationId,
+        message: message
+      })
+    });
+
+    removeTypingIndicator();
+
+    if (res.status === 401 || res.status === 403) {
+      logout();
+      return;
+    }
+
+    const data = await res.json();
+
+    if (res.ok && data.reply) {
+      appendMessageBubble(data.reply, "assistant", true, data.supportCard);
+
+      // Update active title if changed
+      if (data.title && data.conversationId) {
+        activeConversationId = data.conversationId;
+        document.getElementById("activeChatTitle").innerText = data.title;
+        
+        const existingIndex = conversationsList.findIndex(c => c._id === data.conversationId);
+        if (existingIndex !== -1) {
+          conversationsList[existingIndex].title = data.title;
+        } else {
+          conversationsList.unshift({ _id: data.conversationId, title: data.title });
+        }
+        renderConversationsList();
+      }
+    } else {
+      appendMessageBubble("MindNest AI ran into an issue processing your request. Please try again.", "assistant");
+    }
+  } catch (err) {
+    removeTypingIndicator();
+    appendMessageBubble("Connection error. Please check your network connection.", "assistant");
+  } finally {
+    input.disabled = false;
+    sendBtn.disabled = false;
+    input.focus();
+  }
+}
+
+function appendMessageBubble(text, role, isMarkdown = false, supportCard = null) {
+  const container = document.getElementById("messagesBox");
+  const row = document.createElement("div");
+  row.classList.add("message-row", role);
+
+  const bubble = document.createElement("div");
+  bubble.classList.add("message-bubble", role);
+
+  if (isMarkdown && typeof marked !== "undefined") {
+    bubble.innerHTML = marked.parse(text);
+  } else {
+    bubble.innerText = text;
+  }
+
+  row.appendChild(bubble);
+
+  // RENDER SELECTIVE SUPPORT CARDS IF APPLICABLE
+  if (role === "assistant" && supportCard && supportCard.type !== "NONE") {
+    const cardElement = createSupportCardElement(supportCard);
+    if (cardElement) row.appendChild(cardElement);
+  }
+
+  container.appendChild(row);
+  container.scrollTop = container.scrollHeight;
+}
+
+function createSupportCardElement(card) {
+  const wrapper = document.createElement("div");
+  wrapper.classList.add("support-card-container");
+
+  if (card.type === "NEEDS_COUNTRY") {
+    wrapper.innerHTML = `
+      <div class="high-crisis-card" style="border-left-color: #f59e0b;">
+        <div class="crisis-card-header">
+          <span>📍 Country Selection Required</span>
+        </div>
+        <div class="crisis-card-desc">${escapeHtml(card.message)}</div>
+        <div class="country-selector-buttons">
+          <button class="country-chip-btn" onclick="quickSelectCountry('India')">🇮🇳 India</button>
+          <button class="country-chip-btn" onclick="quickSelectCountry('United States')">🇺🇸 United States</button>
+          <button class="country-chip-btn" onclick="quickSelectCountry('Other')">🌐 Other Country</button>
+        </div>
+      </div>
+    `;
+    return wrapper;
+  }
+
+  if (card.type === "MODERATE_OPTIONAL") {
+    let callBtn = "";
+    if (card.callUrl) {
+      callBtn = `<a href="${card.callUrl}" class="moderate-support-btn">🫂 Get Mental Health Support</a>`;
+    } else if (card.findUrl) {
+      callBtn = `<a href="${card.findUrl}" target="_blank" class="moderate-support-btn">🫂 Get Mental Health Support</a>`;
+    } else {
+      callBtn = `<button class="moderate-support-btn" onclick="openProfileModal()">🫂 Get Mental Health Support</button>`;
+    }
+
+    wrapper.innerHTML = `
+      <div class="moderate-support-card">
+        <div class="moderate-support-text">You don't have to face everything alone. Support is available if you need it.</div>
+        ${callBtn}
+      </div>
+    `;
+    return wrapper;
+  }
+
+  if (card.type === "HIGH_CRISIS") {
+    let actionsHtml = "";
+
+    if (card.country === "India") {
+      actionsHtml = `
+        <a href="${card.callUrl || 'tel:14416'}" class="action-btn primary">📞 Call Tele-MANAS (${card.number || '14416'})</a>
+        <button class="action-btn secondary" onclick="alert('Please reach out to a trusted family member, friend, or neighbor right now.')">👥 Talk to Someone You Trust</button>
+      `;
+    } else if (card.country === "United States") {
+      actionsHtml = `
+        <a href="${card.callUrl || 'tel:988'}" class="action-btn primary">📞 Call 988</a>
+        <a href="${card.textUrl || 'sms:988'}" class="action-btn secondary">💬 Text 988</a>
+        <button class="action-btn secondary" onclick="alert('Please reach out to a trusted family member, friend, or neighbor right now.')">👥 Talk to Someone You Trust</button>
+      `;
+    } else {
+      // OTHER / UNKNOWN
+      actionsHtml = `
+        <a href="${card.findUrl || 'https://findahelpline.com'}" target="_blank" class="action-btn primary">🌐 Find Local Support</a>
+        <button class="action-btn secondary" onclick="alert('Please reach out to local emergency services or visit the nearest emergency department.')">⚠️ Emergency Help</button>
+      `;
+    }
+
+    wrapper.innerHTML = `
+      <div class="high-crisis-card">
+        <div class="crisis-card-header">
+          <span>🫂 You Don't Have to Face This Alone</span>
+        </div>
+        <div class="crisis-card-desc">
+          <strong>${escapeHtml(card.serviceName || card.title)}</strong> — ${escapeHtml(card.description || 'Crisis Support Services')}<br>
+          <span style="font-size: 11.5px; opacity: 0.85;">${escapeHtml(card.emergencyText || 'In an emergency, contact local emergency services.')}</span>
+        </div>
+        <div class="crisis-actions">
+          ${actionsHtml}
+        </div>
+      </div>
+    `;
+    return wrapper;
+  }
+
+  return null;
+}
+
+function renderWelcomeMessage() {
+  const countryMsg = (currentUser && currentUser.country) ? ` • Country: **${currentUser.country}**` : "";
+  appendMessageBubble(
+    `Hello! 👋 Welcome to **MindNest AI**, your personal AI Mental Health Companion.${countryMsg} How are you feeling today?`,
+    "assistant",
+    true
+  );
+}
+
+function showTypingIndicator() {
+  const container = document.getElementById("messagesBox");
+  const row = document.createElement("div");
+  row.id = "typingRow";
+  row.classList.add("message-row", "assistant");
+  row.innerHTML = `
+    <div class="typing-indicator">
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+    </div>
+  `;
+  container.appendChild(row);
+  container.scrollTop = container.scrollHeight;
+}
+
+function removeTypingIndicator() {
+  const row = document.getElementById("typingRow");
+  if (row) row.remove();
+}
+
+// PROFILE MODAL TOGGLES
+function openProfileModal() {
+  document.getElementById("profileModal").style.display = "flex";
+}
+function closeProfileModal() {
+  document.getElementById("profileModal").style.display = "none";
+}
+
+// SIDEBAR MOBILE TOGGLE
+function toggleSidebar() {
+  document.getElementById("sidebar").classList.toggle("open");
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+// Enter Key Listener
+document.getElementById("messageInput").addEventListener("keypress", function(e) {
+  if (e.key === "Enter") sendMessage();
+});
+</script>
+
+</body>
+</html>
