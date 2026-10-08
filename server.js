@@ -1,6 +1,8 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -9,43 +11,69 @@ import OpenAI from "openai";
 import User from "./models/User.js";
 import Conversation from "./models/Conversation.js";
 import { authenticateToken } from "./middleware/auth.js";
-import { analyzeMessageRisk, getCountrySupportCard } from "./utils/riskAnalyzer.js";
+import {
+  analyzeMessageRisk,
+  getCountrySupportCard,
+} from "./utils/riskAnalyzer.js";
 
 dotenv.config();
 
 const app = express();
+
 app.use(cors());
 app.use(express.json());
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+app.use(express.static(__dirname));
+
 const PORT = process.env.PORT || 5000;
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/mental_health_assistant";
-const JWT_SECRET = process.env.JWT_SECRET || "mental_health_assistant_secret_key_2026";
-const HF_MODEL = process.env.HF_MODEL || "Qwen/Qwen2.5-72B-Instruct";
+const MONGODB_URI =
+  process.env.MONGODB_URI ||
+  "mongodb://127.0.0.1:27017/mental_health_assistant";
+
+const JWT_SECRET =
+  process.env.JWT_SECRET || "mental_health_assistant_secret_key_2026";
+
+const HF_MODEL =
+  process.env.HF_MODEL || "Qwen/Qwen2.5-72B-Instruct";
 
 // Initialize OpenAI client pointing to Hugging Face Serverless Router
 const openai = new OpenAI({
-  baseURL: process.env.HF_BASE_URL || "https://router.huggingface.co/v1",
+  baseURL:
+    process.env.HF_BASE_URL || "https://router.huggingface.co/v1",
   apiKey: process.env.HF_API_KEY,
 });
 
 // Connect to MongoDB
 mongoose
   .connect(MONGODB_URI)
-  .then(() => console.log("Connected to MindNest AI MongoDB database successfully 🍃"))
-  .catch((err) => console.error("MongoDB connection error ❌:", err));
+  .then(() =>
+    console.log(
+      "Connected to MindNest AI MongoDB database successfully 🍃"
+    )
+  )
+  .catch((err) =>
+    console.error("MongoDB connection error ❌:", err)
+  );
 
 // Dynamic System prompt helper for MindNest AI
 const getSystemPrompt = (user, riskLevel) => {
   let locationContext = "";
+
   if (user && (user.country || user.phone)) {
-    locationContext = `\nUSER PROFILE CONTEXT:
+    locationContext = `
+USER PROFILE CONTEXT:
 - Phone: ${user.phone || "Not provided"}
 - Country: ${user.country || "Not specified"}`;
   }
 
   let safetyGuidance = "";
+
   if (riskLevel === "HIGH") {
-    safetyGuidance = `\nCRITICAL SAFETY DIRECTIVE (LEVEL 3 - HIGH RISK):
+    safetyGuidance = `
+CRITICAL SAFETY DIRECTIVE (LEVEL 3 - HIGH RISK):
 - The user has expressed high-risk or self-harm statements.
 - PRIORITY IS USER SAFETY.
 - Do NOT give a long, generic wellness response.
@@ -53,12 +81,14 @@ const getSystemPrompt = (user, riskLevel) => {
 - Encourage them to stay safe, move away from anything harmful, and stay with someone they trust.
 - Encourage contacting crisis/emergency services immediately.`;
   } else if (riskLevel === "MODERATE") {
-    safetyGuidance = `\nEMOTIONAL GUIDANCE (LEVEL 2 - MODERATE DISTRESS):
+    safetyGuidance = `
+EMOTIONAL GUIDANCE (LEVEL 2 - MODERATE DISTRESS):
 - The user is experiencing emotional exhaustion or feeling overwhelmed.
 - Be deeply empathetic and provide simple, actionable coping techniques (e.g. 4-7-8 breathing, grounding).
 - Gently remind them that talking with a trusted person or mental-health professional can help.`;
   } else {
-    safetyGuidance = `\nNORMAL CONVERSATION GUIDANCE (LEVEL 1 - NORMAL / LOW DISTRESS):
+    safetyGuidance = `
+NORMAL CONVERSATION GUIDANCE (LEVEL 1 - NORMAL / LOW DISTRESS):
 - The user is sharing everyday stress, exam worries, or normal thoughts.
 - Provide warm, supportive conversation and practical coping tips.
 - Do NOT show crisis helpline numbers or tell them to call someone unless asked.`;
@@ -70,25 +100,35 @@ const getSystemPrompt = (user, riskLevel) => {
 
 STRICT SAFETY RULES:
 1. NEVER diagnose mental health disorders. Do NOT say "You have depression", "You have anxiety disorder", or "You are suicidal". Use "It sounds like you're going through a very difficult time" or "I'm concerned about your safety based on what you shared."
-2. Keep responses warm, non-judgmental, structured, concise, and easy to read.`
+2. Keep responses warm, non-judgmental, structured, concise, and easy to read.`,
   };
 };
 
-// Fallback response generator tailored to risk level and country when API is offline/rate-limited
+// Fallback response generator tailored to risk level and country
 function generateMindNestFallback(message, user, riskLevel) {
-  const country = (user && user.country) ? user.country.trim() : "";
+  const country = user && user.country ? user.country.trim() : "";
   const lowerCountry = country.toLowerCase();
-  const isIndia = lowerCountry.includes("india") || lowerCountry === "in";
-  const isUS = lowerCountry.includes("united states") || lowerCountry.includes("usa") || lowerCountry.includes("us");
+
+  const isIndia =
+    lowerCountry.includes("india") || lowerCountry === "in";
+
+  const isUS =
+    lowerCountry.includes("united states") ||
+    lowerCountry.includes("usa") ||
+    lowerCountry === "us";
 
   if (riskLevel === "HIGH") {
     let countryMsg = "";
+
     if (isIndia) {
-      countryMsg = "\n\nYou can connect with Tele-MANAS (Govt. of India) 24x7 at 14416 or 1800-89-14416, or contact 112 for emergency help.";
+      countryMsg =
+        "\n\nYou can connect with Tele-MANAS (Govt. of India) 24x7 at 14416 or 1800-89-14416, or contact 112 for emergency help.";
     } else if (isUS) {
-      countryMsg = "\n\nYou can call or text the 988 Suicide & Crisis Lifeline at 988, or call 911 in an emergency.";
+      countryMsg =
+        "\n\nYou can call or text the 988 Suicide & Crisis Lifeline at 988, or call 911 in an emergency.";
     } else {
-      countryMsg = "\n\nPlease reach out to your local emergency service or a trusted mental health professional in your area.";
+      countryMsg =
+        "\n\nPlease reach out to your local emergency service or a trusted mental health professional in your area.";
     }
 
     return `I'm really sorry you're going through this. You don't have to face this alone.
@@ -110,7 +150,7 @@ If this feeling is becoming difficult to manage, talking with someone you trust 
   return `I understand. It sounds like you have a lot on your mind right now. Everyday challenges and stress can feel heavy, but taking things one step at a time can make a big difference.
 
 What is currently taking up the most energy for you today? I'm here to listen and help you talk through it.`;
-}
+};
 
 // ==========================================
 // 1. AUTHENTICATION ROUTES
@@ -122,16 +162,26 @@ app.post("/api/auth/signup", async (req, res) => {
     const { name, email, password, phone, country } = req.body;
 
     if (!name || !email || !password) {
-      return res.status(400).json({ error: "Please fill in all required fields (name, email, password)." });
+      return res.status(400).json({
+        error:
+          "Please fill in all required fields (name, email, password).",
+      });
     }
 
     if (password.length < 6) {
-      return res.status(400).json({ error: "Password must be at least 6 characters long." });
+      return res.status(400).json({
+        error: "Password must be at least 6 characters long.",
+      });
     }
 
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    const existingUser = await User.findOne({
+      email: email.toLowerCase(),
+    });
+
     if (existingUser) {
-      return res.status(400).json({ error: "An account with this email address already exists." });
+      return res.status(400).json({
+        error: "An account with this email address already exists.",
+      });
     }
 
     // Secure Password Hashing
@@ -150,9 +200,15 @@ app.post("/api/auth/signup", async (req, res) => {
 
     // Create JWT Token
     const token = jwt.sign(
-      { userId: user._id, email: user.email, name: user.name },
+      {
+        userId: user._id,
+        email: user.email,
+        name: user.name,
+      },
       JWT_SECRET,
-      { expiresIn: "7d" }
+      {
+        expiresIn: "7d",
+      }
     );
 
     res.status(201).json({
@@ -168,7 +224,10 @@ app.post("/api/auth/signup", async (req, res) => {
     });
   } catch (err) {
     console.error("Signup error:", err);
-    res.status(500).json({ error: "Server error during registration. Please try again." });
+
+    res.status(500).json({
+      error: "Server error during registration. Please try again.",
+    });
   }
 });
 
@@ -178,25 +237,41 @@ app.post("/api/auth/login", async (req, res) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ error: "Please provide email and password." });
+      return res.status(400).json({
+        error: "Please provide email and password.",
+      });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const user = await User.findOne({
+      email: email.toLowerCase(),
+    });
+
     if (!user) {
-      return res.status(400).json({ error: "Invalid email or password." });
+      return res.status(400).json({
+        error: "Invalid email or password.",
+      });
     }
 
     // Validate password using bcrypt
     const isMatch = await bcrypt.compare(password, user.password);
+
     if (!isMatch) {
-      return res.status(400).json({ error: "Invalid email or password." });
+      return res.status(400).json({
+        error: "Invalid email or password.",
+      });
     }
 
     // Create JWT Token
     const token = jwt.sign(
-      { userId: user._id, email: user.email, name: user.name },
+      {
+        userId: user._id,
+        email: user.email,
+        name: user.name,
+      },
       JWT_SECRET,
-      { expiresIn: "7d" }
+      {
+        expiresIn: "7d",
+      }
     );
 
     res.json({
@@ -212,7 +287,10 @@ app.post("/api/auth/login", async (req, res) => {
     });
   } catch (err) {
     console.error("Login error:", err);
-    res.status(500).json({ error: "Server error during login. Please try again." });
+
+    res.status(500).json({
+      error: "Server error during login. Please try again.",
+    });
   }
 });
 
@@ -220,24 +298,34 @@ app.post("/api/auth/login", async (req, res) => {
 app.get("/api/auth/me", authenticateToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId).select("-password");
+
     if (!user) {
-      return res.status(404).json({ error: "User profile not found." });
+      return res.status(404).json({
+        error: "User profile not found.",
+      });
     }
+
     res.json({ user });
   } catch (err) {
     console.error("Profile error:", err);
-    res.status(500).json({ error: "Failed to fetch user profile." });
+
+    res.status(500).json({
+      error: "Failed to fetch user profile.",
+    });
   }
 });
 
-// UPDATE USER PROFILE (NAME, PHONE & COUNTRY)
+// UPDATE USER PROFILE
 app.put("/api/auth/profile", authenticateToken, async (req, res) => {
   try {
     const { name, phone, country } = req.body;
+
     const user = await User.findById(req.user.userId);
 
     if (!user) {
-      return res.status(404).json({ error: "User profile not found." });
+      return res.status(404).json({
+        error: "User profile not found.",
+      });
     }
 
     if (name) user.name = name;
@@ -259,18 +347,23 @@ app.put("/api/auth/profile", authenticateToken, async (req, res) => {
     });
   } catch (err) {
     console.error("Update profile error:", err);
-    res.status(500).json({ error: "Failed to update profile." });
+
+    res.status(500).json({
+      error: "Failed to update profile.",
+    });
   }
 });
 
 // ==========================================
-// 2. CONVERSATION MANAGEMENT ROUTES (PROTECTED)
+// 2. CONVERSATION MANAGEMENT ROUTES
 // ==========================================
 
-// LIST ALL CONVERSATIONS FOR CURRENT USER
+// LIST ALL CONVERSATIONS
 app.get("/api/conversations", authenticateToken, async (req, res) => {
   try {
-    const conversations = await Conversation.find({ userId: req.user.userId })
+    const conversations = await Conversation.find({
+      userId: req.user.userId,
+    })
       .select("_id title createdAt updatedAt messages")
       .sort({ updatedAt: -1 });
 
@@ -280,13 +373,21 @@ app.get("/api/conversations", authenticateToken, async (req, res) => {
       createdAt: c.createdAt,
       updatedAt: c.updatedAt,
       messageCount: c.messages ? c.messages.length : 0,
-      lastMessage: c.messages && c.messages.length > 0 ? c.messages[c.messages.length - 1].content : "",
+      lastMessage:
+        c.messages && c.messages.length > 0
+          ? c.messages[c.messages.length - 1].content
+          : "",
     }));
 
-    res.json({ conversations: formatted });
+    res.json({
+      conversations: formatted,
+    });
   } catch (err) {
     console.error("Fetch conversations error:", err);
-    res.status(500).json({ error: "Failed to fetch conversations." });
+
+    res.status(500).json({
+      error: "Failed to fetch conversations.",
+    });
   }
 });
 
@@ -301,59 +402,91 @@ app.post("/api/conversations", authenticateToken, async (req, res) => {
 
     await conversation.save();
 
-    res.status(201).json({ conversation });
+    res.status(201).json({
+      conversation,
+    });
   } catch (err) {
     console.error("Create conversation error:", err);
-    res.status(500).json({ error: "Failed to create conversation." });
+
+    res.status(500).json({
+      error: "Failed to create conversation.",
+    });
   }
 });
 
-// GET SINGLE CONVERSATION BY ID (WITH USER ISOLATION CHECK)
-app.get("/api/conversations/:id", authenticateToken, async (req, res) => {
-  try {
-    const conversation = await Conversation.findById(req.params.id);
+// GET SINGLE CONVERSATION
+app.get(
+  "/api/conversations/:id",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const conversation = await Conversation.findById(req.params.id);
 
-    if (!conversation) {
-      return res.status(404).json({ error: "Conversation not found." });
+      if (!conversation) {
+        return res.status(404).json({
+          error: "Conversation not found.",
+        });
+      }
+
+      // STRICT USER ISOLATION CHECK
+      if (conversation.userId.toString() !== req.user.userId) {
+        return res.status(403).json({
+          error: "Access denied. You do not own this conversation.",
+        });
+      }
+
+      res.json({
+        conversation,
+      });
+    } catch (err) {
+      console.error("Get conversation error:", err);
+
+      res.status(500).json({
+        error: "Failed to retrieve conversation.",
+      });
     }
-
-    // STRICT USER ISOLATION CHECK
-    if (conversation.userId.toString() !== req.user.userId) {
-      return res.status(403).json({ error: "Access denied. You do not own this conversation." });
-    }
-
-    res.json({ conversation });
-  } catch (err) {
-    console.error("Get conversation error:", err);
-    res.status(500).json({ error: "Failed to retrieve conversation." });
   }
-});
+);
 
-// DELETE CONVERSATION BY ID (WITH USER ISOLATION CHECK)
-app.delete("/api/conversations/:id", authenticateToken, async (req, res) => {
-  try {
-    const conversation = await Conversation.findById(req.params.id);
+// DELETE CONVERSATION
+app.delete(
+  "/api/conversations/:id",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const conversation = await Conversation.findById(req.params.id);
 
-    if (!conversation) {
-      return res.status(404).json({ error: "Conversation not found." });
+      if (!conversation) {
+        return res.status(404).json({
+          error: "Conversation not found.",
+        });
+      }
+
+      // STRICT USER ISOLATION CHECK
+      if (conversation.userId.toString() !== req.user.userId) {
+        return res.status(403).json({
+          error: "Access denied. You do not own this conversation.",
+        });
+      }
+
+      await Conversation.findByIdAndDelete(req.params.id);
+
+      res.json({
+        message: "Conversation deleted successfully.",
+        id: req.params.id,
+      });
+    } catch (err) {
+      console.error("Delete conversation error:", err);
+
+      res.status(500).json({
+        error: "Failed to delete conversation.",
+      });
     }
-
-    // STRICT USER ISOLATION CHECK
-    if (conversation.userId.toString() !== req.user.userId) {
-      return res.status(403).json({ error: "Access denied. You do not own this conversation." });
-    }
-
-    await Conversation.findByIdAndDelete(req.params.id);
-
-    res.json({ message: "Conversation deleted successfully.", id: req.params.id });
-  } catch (err) {
-    console.error("Delete conversation error:", err);
-    res.status(500).json({ error: "Failed to delete conversation." });
   }
-});
+);
 
 // ==========================================
-// 3. AI CHAT ROUTE (WITH SELECTIVE RISK CLASSIFIER & SUPPORT CARDS)
+// 3. AI CHAT ROUTE
 // ==========================================
 
 app.post("/api/chat", authenticateToken, async (req, res) => {
@@ -361,32 +494,46 @@ app.post("/api/chat", authenticateToken, async (req, res) => {
     const { conversationId, message } = req.body;
 
     if (!message || !message.trim()) {
-      return res.status(400).json({ error: "Message content cannot be empty." });
+      return res.status(400).json({
+        error: "Message content cannot be empty.",
+      });
     }
 
-    // Fetch User details for MindNest AI country context
+    // Fetch User details
     const user = await User.findById(req.user.userId);
 
-    // 1. SELECTIVE RISK DETECTION LAYER
+    // SELECTIVE RISK DETECTION
     const riskAssessment = analyzeMessageRisk(message);
-    const supportCard = getCountrySupportCard(user ? user.country : "", riskAssessment.level);
+
+    const supportCard = getCountrySupportCard(
+      user ? user.country : "",
+      riskAssessment.level
+    );
 
     let conversation;
 
     if (conversationId) {
       conversation = await Conversation.findById(conversationId);
+
       if (!conversation) {
-        return res.status(404).json({ error: "Conversation not found." });
+        return res.status(404).json({
+          error: "Conversation not found.",
+        });
       }
+
       // USER ISOLATION CHECK
       if (conversation.userId.toString() !== req.user.userId) {
-        return res.status(403).json({ error: "Access denied. You do not own this conversation." });
+        return res.status(403).json({
+          error: "Access denied. You do not own this conversation.",
+        });
       }
     } else {
-      // Create a new conversation if none specified
+      // Create new conversation
       conversation = new Conversation({
         userId: req.user.userId,
-        title: message.trim().slice(0, 30) + (message.length > 30 ? "..." : ""),
+        title:
+          message.trim().slice(0, 30) +
+          (message.length > 30 ? "..." : ""),
         messages: [],
       });
     }
@@ -398,19 +545,30 @@ app.post("/api/chat", authenticateToken, async (req, res) => {
       timestamp: new Date(),
     });
 
-    // Auto-update conversation title if generic
-    if (conversation.title === "New Conversation" && conversation.messages.length > 0) {
-      conversation.title = message.trim().slice(0, 30) + (message.length > 30 ? "..." : "");
+    // Auto-update conversation title
+    if (
+      conversation.title === "New Conversation" &&
+      conversation.messages.length > 0
+    ) {
+      conversation.title =
+        message.trim().slice(0, 30) +
+        (message.length > 30 ? "..." : "");
     }
 
-    // CHAT MEMORY: Extract the last 10 messages from THIS conversation only
-    const recentHistory = conversation.messages.slice(-10).map((m) => ({
-      role: m.role,
-      content: m.content,
-    }));
+    // CHAT MEMORY: Last 10 messages
+    const recentHistory = conversation.messages
+      .slice(-10)
+      .map((m) => ({
+        role: m.role,
+        content: m.content,
+      }));
 
-    // Construct prompt: Dynamic MindNest AI System Prompt + current conversation context
-    const systemPrompt = getSystemPrompt(user, riskAssessment.level);
+    // Construct prompt
+    const systemPrompt = getSystemPrompt(
+      user,
+      riskAssessment.level
+    );
+
     const apiMessages = [systemPrompt, ...recentHistory];
 
     let botReply = "";
@@ -424,14 +582,27 @@ app.post("/api/chat", authenticateToken, async (req, res) => {
         max_tokens: 600,
       });
 
-      botReply = completion.choices[0]?.message?.content || "";
+      botReply =
+        completion.choices[0]?.message?.content || "";
     } catch (aiError) {
-      console.warn("AI API Quota / Connection error, using MindNest fallback:", aiError.message);
-      botReply = generateMindNestFallback(message, user, riskAssessment.level);
+      console.warn(
+        "AI API Quota / Connection error, using MindNest fallback:",
+        aiError.message
+      );
+
+      botReply = generateMindNestFallback(
+        message,
+        user,
+        riskAssessment.level
+      );
     }
 
     if (!botReply) {
-      botReply = generateMindNestFallback(message, user, riskAssessment.level);
+      botReply = generateMindNestFallback(
+        message,
+        user,
+        riskAssessment.level
+      );
     }
 
     // Append bot response
@@ -441,8 +612,8 @@ app.post("/api/chat", authenticateToken, async (req, res) => {
       timestamp: new Date(),
     });
 
-    // Update conversation timestamp
     conversation.updatedAt = new Date();
+
     await conversation.save();
 
     res.json({
@@ -455,18 +626,29 @@ app.post("/api/chat", authenticateToken, async (req, res) => {
     });
   } catch (err) {
     console.error("Chat Error:", err);
+
     res.status(500).json({
-      reply: "MindNest AI is having trouble connecting right now. Please try again shortly.",
+      reply:
+        "MindNest AI is having trouble connecting right now. Please try again shortly.",
       error: err.message,
     });
   }
 });
 
-// STATUS / HEALTH CHECK
+// ==========================================
+// ROOT / FRONTEND
+// ==========================================
+
 app.get("/", (req, res) => {
-  res.send("MindNest AI Selective Safety Application API is running ✅");
+  res.sendFile(path.join(__dirname, "index.html"));
 });
 
+// ==========================================
+// START SERVER
+// ==========================================
+
 app.listen(PORT, () => {
-  console.log(`MindNest AI Server running on port ${PORT} 🚀 [Model: ${HF_MODEL}]`);
+  console.log(
+    `MindNest AI Server running on port ${PORT} 🚀 [Model: ${HF_MODEL}]`
+  );
 });
